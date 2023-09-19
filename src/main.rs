@@ -22,6 +22,6 @@ mod options {
 
 fn main() -> anyhow::Result<()> {
     let args = options::Args::parse();
-    foobar::fun(&args.input)
+    stool::fun(&args.input)
         .with_context(|| format!("Could not handle file at path {}", args.input.display()))
 }

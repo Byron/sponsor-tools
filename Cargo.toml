@@ -1,5 +1,5 @@
 [package]
-name = "foobar"
+name = "stool"
 version = "1.0.0"
 authors = ["Sebastian Thiel <byronimo@gmail.com>"]
 publish = false
@@ -10,8 +10,11 @@ clap = { version = "4.4.3", features = ["derive"] }
 anyhow = "1.0.31"
 thiserror = "1.0.48"
 
+[lib]
+doctest = false
+
 [[bin]]
-name="foobar"
+name="stool"
 path="src/main.rs"
 
 [profile.release]

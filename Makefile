@@ -8,10 +8,10 @@ help:  ## Display this help
 
 always:
 
-target/debug/foobar: always
+target/debug/stool: always
 	cargo build
 
-target/release/foobar: always
+target/release/stool: always
 	cargo build --release
 
 ##@ Development
@@ -24,14 +24,14 @@ unit-test: ## Run the library's unit-tests
 
 test: lint unit-test journey-tests
 
-profile: target/release/foobar ## Profile the program using callgrind, needs linux or `make interactive-developer-environment-in-docker`
+profile: target/release/stool ## Profile the program using callgrind, needs linux or `make interactive-developer-environment-in-docker`
 	valgrind --callgrind-out-file=callgrind.profile --tool=callgrind  $< >/dev/null
 	callgrind_annotate --auto=yes callgrind.profile
 
-benchmark: target/release/foobar ## Run CLI benchmarks with hyperfine
+benchmark: target/release/stool ## Run CLI benchmarks with hyperfine
 	hyperfine '$<'
 
-journey-tests: target/debug/foobar ## Run journey-tests
+journey-tests: target/debug/stool ## Run journey-tests
 	./tests/stateless-journey.sh $<
 
 continuous-journey-tests: ## Run journey-tests, continuously
