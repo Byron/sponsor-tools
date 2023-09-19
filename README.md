@@ -11,7 +11,7 @@ Use the `merge` sub-command to join both GitHub sponsor activities from one more
 which USD amount corresponds to an amount in your local currency. This in turn might be relevant to handling VAT.
 
 ```
-stool merge-accounts --github-activity year1.csv -g year2.csv --stripe-account stripe-year1.csv -s stripe-year2.csv --notes note.csv
+stool merge-accounts --github-activity year1.csv -g year2.csv --stripe-activity stripe-year1.csv -s stripe-year2.csv --notes note.csv
 ```
 
 `--notes` is a CSV table with three columns, `on`, `if-equals`, `note`, to add a `note` value (in a similarly named column) on each row's `on` 

@@ -1,16 +1,7 @@
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("{0}")]
-    Bug(&'static str),
-    #[error("{0}")]
-    Message(String),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-}
+#![deny(rust_2018_idioms)]
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub mod merge_accounts;
+pub use merge_accounts::function::merge_accounts;
 
-pub fn fun(path: &std::path::Path) -> Result<()> {
-    std::fs::read(path)?;
-    Ok(())
-}
+pub mod merge;
+pub use merge::function::merge;

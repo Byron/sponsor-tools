@@ -1,0 +1,5 @@
+Sponsor Handle,Sponsor Profile Name,Sponsor Public Email,Sponsorship Started On,Is Public?,Is Yearly?,Transaction ID,Payment Source,Tier Name,Tier Monthly Amount,Processed Amount,Is Prorated?,Status,Transaction Date,Metadata,Country,Region,VAT
+stone234,,,2022-01-06 05:46:46 +0100,true,false,ch_4KGSFNEQsq43eHhx1zgLeg78,github,$10 a month,$10.00,$10.00,false,settled,2022-01-10 19:05:52 +0100,"",USA,California,
+stone234,,,2022-01-06 05:46:46 +0100,true,false,ch_5KEnsFEQsq43iHhX0Jxu6HsX,github,$10 a month,$10.00,$10.00,true,settled,2022-01-06 05:47:23 +0100,"",USA,California,
+jschina,Karl Platz,,2021-12-28 15:12:57 +0100,true,false,ch_5KDZ1WEQsq45iHhX0gqnlJOr,github,$2 a month,$2.00,$2.00,false,settled,2022-01-02 19:43:27 +0100,"",DEU,Thüringen,
+ramsmann,Steve Kanbolt,example@example.org,2021-12-27 14:15:53 +0100,true,false,ch_4MEzdWEQsq47iHhX1fkcwk24,github,$2 a month,$2.00,$2.00,false,settled,2022-01-02 19:55:08 +0100,"",Germany,Hamburg,DE325595473
