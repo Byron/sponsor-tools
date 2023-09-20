@@ -14,6 +14,9 @@ mod options {
             /// The amount of seconds a stripe account transaction may be away from the best candidate in the sponsor list to be considered.
             #[clap(long, short = 'm', default_value = "5")]
             max_distance_seconds: u64,
+            /// The path to a `.ron` file which declares matching rules for finding rows to which to add a particular note in an appended "Note" column.
+            #[clap(long, short = 'n')]
+            notes: Option<PathBuf>,
             /// The non-overlapping CSV files obtained from a GitHub activity CSV export.
             #[clap(long, short = 'g')]
             github_activity: Vec<PathBuf>,
@@ -46,6 +49,7 @@ fn main() -> anyhow::Result<()> {
         Args::MergeAccounts {
             github_activity,
             stripe_activity,
+            notes,
             max_distance_seconds,
         } => stool::merge_accounts(
             into_read(github_activity)?,
@@ -53,6 +57,7 @@ fn main() -> anyhow::Result<()> {
             std::io::BufWriter::new(std::io::stdout()),
             stool::merge_accounts::Options {
                 max_distance_seconds,
+                notes,
                 ..Default::default()
             },
         )?,

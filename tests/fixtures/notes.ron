@@ -1,0 +1,19 @@
+Engine(
+    rules: [
+        Rule(
+            statements: [
+                Statement(
+                    value_column_index: 0,
+                    operation: Equals,
+                    value: "Oneitho",
+                ),
+                Statement(
+                    value_column_index: 8,
+                    operation: EndsWith,
+                    value: "one time",
+                ),
+            ],
+            value: "annotation based on match",
+        ),
+    ],
+)

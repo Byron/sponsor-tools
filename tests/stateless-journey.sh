@@ -61,4 +61,17 @@ WITH_FAILURE=2
       }
     )
   )
+
+  (with "two github account files and one stripe activity feed and a notes description"
+    snapshot_file="$snapshot/success-input-file-produces-correct-output-with-notes.csv"
+    it "produces output with an extra column for matched notes" && {
+      WITH_SNAPSHOT="$snapshot_file" \
+      expect_run ${SUCCESSFULLY} "$exe" merge-accounts --notes $fixture/notes.ron --github-activity $fixture/sponsors-2021.csv -g $fixture/sponsors-2022.csv --stripe-activity $fixture/stripe-activity.csv
+    }
+    (with_program xsv
+      it "produces a valid CSV file" && {
+        expect_run ${SUCCESSFULLY} xsv table "$snapshot_file"
+      }
+    )
+  )
 )

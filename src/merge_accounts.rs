@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
@@ -22,6 +24,10 @@ pub enum Error {
         date_time: String,
         source: gix_date::parse::Error,
     },
+    #[error("Failed to open notes description file for reading")]
+    OpenNotesFile(#[from] std::io::Error),
+    #[error("Could not decode the matching engine to attach notes with")]
+    DecodeNotes(#[from] ron::de::SpannedError),
 }
 
 impl Error {
@@ -43,6 +49,7 @@ pub struct Options {
     pub github_date_column: String,
     pub github_delimiter: char,
     pub max_distance_seconds: u64,
+    pub notes: Option<PathBuf>,
 }
 
 impl Default for Options {
@@ -54,13 +61,14 @@ impl Default for Options {
             github_date_column: "Transaction Date".into(),
             github_delimiter: ',',
             max_distance_seconds: 10,
+            notes: None,
         }
     }
 }
 
 pub(crate) mod function {
-    use crate::merge;
     use crate::merge_accounts::{Error, Options};
+    use crate::{merge, sle};
 
     pub fn merge_accounts(
         github_data: impl IntoIterator<Item = impl std::io::Read>,
@@ -73,6 +81,7 @@ pub(crate) mod function {
             github_date_column,
             github_delimiter,
             max_distance_seconds,
+            notes,
         }: Options,
     ) -> Result<(), Error> {
         let mut github_csv = Vec::<u8>::new();
@@ -94,6 +103,11 @@ pub(crate) mod function {
             .delimiter(delimiter)
             .has_headers(true)
             .from_reader(github_csv.as_slice());
+        let notes = notes
+            .map(|path| -> Result<sle::Engine, Error> {
+                Ok(ron::de::from_reader(std::fs::File::open(path)?)?)
+            })
+            .transpose()?;
 
         let mut stripe_csv = Vec::<u8>::new();
         let merge::Outcome {
@@ -122,6 +136,9 @@ pub(crate) mod function {
             headers.push_field("Distance [s]");
             for field in stripe_csv.headers()? {
                 headers.push_field(field);
+            }
+            if notes.is_some() {
+                headers.push_field("Note");
             }
             out.write_record(&headers)?;
         }
@@ -189,6 +206,14 @@ pub(crate) mod function {
                         record.push_field(&[]);
                     }
                 }
+            }
+            if let Some(engine) = &notes {
+                record.push_field(
+                    engine
+                        .matching_rule(&record)
+                        .map(|rule| rule.value.as_bytes())
+                        .unwrap_or_default(),
+                );
             }
             out.write_byte_record(&record)?;
         }

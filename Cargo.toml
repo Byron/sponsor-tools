@@ -6,12 +6,17 @@ publish = false
 edition = "2021"
 
 [dependencies]
+# CLI dependencies
 clap = { version = "4.4.3", features = ["derive"] }
 anyhow = "1.0.31"
+
+# library dependencies
 thiserror = "1.0.48"
 csv = "1.2.2"
 time = { version = "0.3.28", features = ["parsing", "macros", "formatting"] }
 gix-date = "0.8.0"
+serde = { version = "1.0.188", features = ["derive"] }
+ron = "0.8.1"
 
 [lib]
 doctest = false
