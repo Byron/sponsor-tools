@@ -1,72 +1,37 @@
 #![deny(rust_2018_idioms)]
 
 pub mod merge_accounts;
+
 pub use merge_accounts::function::merge_accounts;
 
 pub mod merge;
 pub use merge::function::merge;
 
-/// A tailor-made match engine to be able to auto-apply notes to matching rows.
-/// sle = simple logic engine
-pub mod sle {
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    pub struct Statement {
-        pub value_column_index: usize,
-        pub operation: Operation,
-        pub value: String,
+pub mod sle;
+
+/// Transform typical numbers as encountered in GitHub CSV and stripe CSV and change their thousands and decimal separators.
+pub fn normalize_number(
+    number: impl Into<Vec<u8>>,
+    thousands_separator: char,
+    decimal_separator: char,
+) -> Vec<u8> {
+    fn is_separator(b: &&mut u8) -> bool {
+        **b == b'.' || **b == b','
+    }
+    let mut number = number.into();
+    let mut b = number.iter_mut().rev();
+    let mut next_thousdands_ofs = 3;
+    if let Some(b) = b.nth(2).filter(is_separator) {
+        *b = decimal_separator.try_into().expect("sane separators")
+    } else {
+        next_thousdands_ofs = 0;
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    pub enum Operation {
-        Equals,
-        EndsWith,
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    pub struct Rule {
-        /// All statements have to be true for a match
-        pub statements: Vec<Statement>,
-        /// The value to apply if the rule matches.
-        pub value: String,
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    pub struct Engine {
-        pub rules: Vec<Rule>,
-    }
-
-    impl Statement {
-        pub fn matches(&self, record: &csv::ByteRecord) -> Option<()> {
-            let value = record.get(self.value_column_index)?;
-            match self.operation {
-                Operation::Equals => {
-                    if !value.eq(self.value.as_bytes()) {
-                        return None;
-                    }
-                }
-                Operation::EndsWith => {
-                    if !value.ends_with(self.value.as_bytes()) {
-                        return None;
-                    }
-                }
-            }
-            Some(())
+    while let Some(b) = b.nth(next_thousdands_ofs) {
+        if is_separator(&b) {
+            *b = thousands_separator.try_into().expect("sane separators")
         }
+        next_thousdands_ofs = 3;
     }
-
-    impl Rule {
-        pub fn matches(&self, record: &csv::ByteRecord) -> bool {
-            self.statements
-                .iter()
-                .all(|stm| stm.matches(record).is_some())
-        }
-    }
-
-    impl Engine {
-        pub fn matching_rule(&self, record: &csv::ByteRecord) -> Option<&Rule> {
-            self.rules
-                .iter()
-                .find_map(|rule| rule.matches(record).then_some(rule))
-        }
-    }
+    number
 }

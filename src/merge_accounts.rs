@@ -49,6 +49,12 @@ pub struct Options {
     pub github_date_column: String,
     pub github_delimiter: char,
     pub max_distance_seconds: u64,
+    /// the possible characters that denote the start of a number that we are supposed to normalize
+    pub number_markers: String,
+    /// Separator for use with number normalization.
+    pub decimal_separator: char,
+    /// Separator for use with number normalization.
+    pub thousands_separator: char,
     pub notes: Option<PathBuf>,
 }
 
@@ -61,6 +67,9 @@ impl Default for Options {
             github_date_column: "Transaction Date".into(),
             github_delimiter: ',',
             max_distance_seconds: 10,
+            number_markers: "€$".into(),
+            thousands_separator: '.',
+            decimal_separator: ',',
             notes: None,
         }
     }
@@ -68,7 +77,8 @@ impl Default for Options {
 
 pub(crate) mod function {
     use crate::merge_accounts::{Error, Options};
-    use crate::{merge, sle};
+    use crate::{merge, normalize_number, sle};
+    use std::borrow::Cow;
 
     pub fn merge_accounts(
         github_data: impl IntoIterator<Item = impl std::io::Read>,
@@ -81,6 +91,9 @@ pub(crate) mod function {
             github_date_column,
             github_delimiter,
             max_distance_seconds,
+            number_markers,
+            thousands_separator,
+            decimal_separator,
             notes,
         }: Options,
     ) -> Result<(), Error> {
@@ -147,8 +160,28 @@ pub(crate) mod function {
             key_column_indices[0],
             key_column_indices[1],
         )?;
+        let starts_with_currency = {
+            let mut markers = Vec::<std::ops::Range<usize>>::new();
+            for (idx, _) in number_markers.char_indices().skip(1) {
+                let start = markers.last().map(|r| r.end).unwrap_or_default();
+                markers.push(start..idx);
+            }
+            if !number_markers.is_empty() {
+                let start = markers.last().map(|r| r.end).unwrap_or_default();
+                markers.push(start..number_markers.as_bytes().len());
+            }
+            move |value: &[u8]| -> bool {
+                for marker_range in &markers {
+                    if value.starts_with(&number_markers.as_bytes()[marker_range.clone()]) {
+                        return true;
+                    }
+                }
+                false
+            }
+        };
 
         let mut record = csv::ByteRecord::new();
+        let mut rewrite_record = csv::ByteRecord::new();
         while github_csv.read_byte_record(&mut record)? {
             let date_time = record.get(github_date_index).ok_or_else(|| {
                 Error::from_position(github_date_index, record.position(), &github_date_column)
@@ -185,37 +218,66 @@ pub(crate) mod function {
                     }),
             }
             .map(|(idx, distance)| (&stripe_lut[idx], idx, distance));
+
+            rewrite_record.clear();
+            for field_value in &record {
+                rewrite_record.push_field(
+                    if starts_with_currency(field_value) {
+                        Cow::Owned(normalize_number(
+                            field_value,
+                            thousands_separator,
+                            decimal_separator,
+                        ))
+                    } else {
+                        Cow::Borrowed(field_value)
+                    }
+                    .as_ref(),
+                );
+            }
+
             match stripe_row {
-                Some((row, idx, distance)) => {
-                    record.push_field(
-                        row.date_time
+                Some((strip_record, idx, distance)) => {
+                    rewrite_record.push_field(
+                        strip_record
+                            .date_time
                             .format(gix_date::time::format::ISO8601)
                             .expect("should always work")
                             .as_bytes(),
                     );
-                    record.push_field(distance.to_string().as_bytes());
-                    for field in &row.row {
-                        record.push_field(field);
+                    rewrite_record.push_field(distance.to_string().as_bytes());
+                    for field_value in &strip_record.row {
+                        rewrite_record.push_field(
+                            if starts_with_currency(field_value) {
+                                Cow::Owned(normalize_number(
+                                    field_value,
+                                    thousands_separator,
+                                    decimal_separator,
+                                ))
+                            } else {
+                                Cow::Borrowed(field_value)
+                            }
+                            .as_ref(),
+                        );
                     }
                     stripe_lut.remove(idx);
                 }
                 None => {
-                    record.push_field(&[]); /* combined date-time */
-                    record.push_field(&[]); /* distance */
+                    rewrite_record.push_field(&[]); /* combined date-time */
+                    rewrite_record.push_field(&[]); /* distance */
                     for _ in 0..stripe_column_count {
-                        record.push_field(&[]);
+                        rewrite_record.push_field(&[]);
                     }
                 }
             }
             if let Some(engine) = &notes {
-                record.push_field(
+                rewrite_record.push_field(
                     engine
-                        .matching_rule(&record)
+                        .matching_rule(&rewrite_record)
                         .map(|rule| rule.value.as_bytes())
                         .unwrap_or_default(),
                 );
             }
-            out.write_byte_record(&record)?;
+            out.write_byte_record(&rewrite_record)?;
         }
 
         Ok(())

@@ -74,4 +74,17 @@ WITH_FAILURE=2
       }
     )
   )
+
+  (with "two github account files and one stripe activity feed and custom separators"
+    snapshot_file="$snapshot/success-input-file-produces-correct-output-with-custom-separators.csv"
+    it "produces output with and adjusts separators according to configuration" && {
+      WITH_SNAPSHOT="$snapshot_file" \
+      expect_run ${SUCCESSFULLY} "$exe" merge-accounts --thousands-separator , --decimal-separator . --notes $fixture/notes.ron --github-activity $fixture/sponsors-2021.csv -g $fixture/sponsors-2022.csv --stripe-activity $fixture/stripe-activity.csv
+    }
+    (with_program xsv
+      it "produces a valid CSV file" && {
+        expect_run ${SUCCESSFULLY} xsv table "$snapshot_file"
+      }
+    )
+  )
 )

@@ -58,3 +58,24 @@ mod sle {
         }
     }
 }
+
+#[test]
+fn normalize_number() {
+    for (input, expected) in [
+        ("$10.00", "$10,00"),
+        ("$1,000.00", "$1.000,00"),
+        ("$1,000", "$1.000"),
+        ("€8,75", "€8,75"),
+        ("€1,000,00", "€1.000,00"),
+        ("€1,000,000,00", "€1.000.000,00"),
+        ("$1,000,000.00", "$1.000.000,00"),
+    ] {
+        let actual = stool::normalize_number(input, '.', ',');
+        assert_eq!(
+            actual,
+            expected.as_bytes(),
+            "{} != {expected}",
+            std::str::from_utf8(&actual).unwrap()
+        );
+    }
+}

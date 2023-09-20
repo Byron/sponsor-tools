@@ -14,6 +14,15 @@ mod options {
             /// The amount of seconds a stripe account transaction may be away from the best candidate in the sponsor list to be considered.
             #[clap(long, short = 'm', default_value = "5")]
             max_distance_seconds: u64,
+            /// Fields whose value starts with one of these characters will have their thousands- and comma-separators normalized.
+            #[clap(long, default_value = "€$")]
+            normalize_if_starts_with: String,
+            /// The separator between bigger numbers, like 1.000 or 1,000.
+            #[clap(long, default_value = ".")]
+            thousands_separator: char,
+            /// The separator to partition whole part of a number from the fractional part.
+            #[clap(long, default_value = ",")]
+            decimal_separator: char,
             /// The path to a `.ron` file which declares matching rules for finding rows to which to add a particular note in an appended "Note" column.
             #[clap(long, short = 'n')]
             notes: Option<PathBuf>,
@@ -49,6 +58,9 @@ fn main() -> anyhow::Result<()> {
         Args::MergeAccounts {
             github_activity,
             stripe_activity,
+            normalize_if_starts_with,
+            thousands_separator,
+            decimal_separator,
             notes,
             max_distance_seconds,
         } => stool::merge_accounts(
@@ -57,6 +69,9 @@ fn main() -> anyhow::Result<()> {
             std::io::BufWriter::new(std::io::stdout()),
             stool::merge_accounts::Options {
                 max_distance_seconds,
+                number_markers: normalize_if_starts_with,
+                thousands_separator,
+                decimal_separator,
                 notes,
                 ..Default::default()
             },
